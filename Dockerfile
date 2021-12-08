@@ -37,9 +37,14 @@ RUN touch /var/run/nginx.pid
 RUN touch /var/run/nginx.pid && \
     chown -R nginx:nginx /var/run/nginx.pid && \
     chown -R nginx:nginx /var/cache/nginx && \
-    chown -R nginx:nginx /var/log/nginx
+    chown -R nginx:nginx /var/log/nginx && \
+    usermod -aG wallarm nginx
+
+RUN chown -R nginx:wallarm /var/log/nginx
 
 ENV TERM="xterm"
 WORKDIR /
 
+# USER nginx:nginx
+# STOPSIGNAL SIGQUIT
 CMD ["/bin/bash"]

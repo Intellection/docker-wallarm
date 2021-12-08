@@ -1,0 +1,87 @@
+---
+version: '3.7'
+services:
+  app:
+    image: caddy:2.1.1-alpine
+    networks:
+      - local
+  wallarm-nginx:
+    image: zappi/wallarm:latest
+    command:
+      - nginx
+    ports:
+      - "8080:8080"
+      - "18081:18081"
+    volumes:
+      - ./example/app.conf:/etc/nginx/app.conf
+      - wallarm-configuration-nginx:/etc/wallarm
+    depends_on:
+      - app
+    networks:
+      - local
+  wallarm-nginx-addnode:
+    image: zappi/wallarm:latest
+    command:
+      - /usr/share/wallarm-common/addnode
+      - --batch
+      - --force
+      - --host=us1.api.wallarm.com
+      - --logfile=STDOUT
+      - --name=nginx-202112091000
+      - --no-sync-acl
+      - --password=${WALLARM_PASSWORD}
+      - --username=${WALLARM_USERNAME}
+    volumes:
+      - wallarm-configuration-nginx:/etc/wallarm
+    networks:
+      - local
+  wallarm-nginx-syncnode:
+    image: zappi/wallarm:latest
+    command:
+      - /usr/share/wallarm-common/syncnode
+      - --logfile=STDOUT
+      - --loop
+    volumes:
+      - wallarm-configuration-nginx:/etc/wallarm
+    networks:
+      - local
+  wallarm-postanalytics:
+    image: zappi/wallarm:latest
+    command:
+      - /usr/bin/wtarantool
+      - /usr/share/wallarm-tarantool/init.lua
+    environment:
+      - HOST=0.0.0.0
+      - PORT=3313
+      - SLAB_ALLOC_ARENA=0.5
+    expose:
+      - 3313
+    volumes:
+      - wallarm-configuration-postanalytics:/etc/wallarm
+    networks:
+      - local
+  wallarm-postanalytics-addnode:
+    image: zappi/wallarm:latest
+    command:
+      - /usr/share/wallarm-common/addnode
+      - --batch
+      - --force
+      - --host=us1.api.wallarm.com
+      - --logfile=STDOUT
+      - --name=postanalytics-202112091000
+      - --no-sync
+      - --no-sync-acl
+      - --password=${WALLARM_PASSWORD}
+      - --username=${WALLARM_USERNAME}
+    volumes:
+      - wallarm-configuration-postanalytics:/etc/wallarm
+    networks:
+      - local
+
+networks:
+  local:
+volumes:
+  wallarm-configuration-nginx:
+    driver: local
+  wallarm-configuration-postanalytics:
+    driver: local
